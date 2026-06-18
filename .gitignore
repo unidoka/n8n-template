@@ -1,0 +1,10 @@
+n8n-backups/credentials.json
+
+*.yml.save
+*.yml.swp
+
+xray_config.json
+
+certs/
+
+certificate.pem

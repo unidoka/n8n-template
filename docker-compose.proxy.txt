@@ -1,0 +1,10 @@
+services:
+  xray:
+    image: teddysun/xray:latest
+    container_name: xray
+    restart: always
+    ports:
+      - "10808:10808"
+    volumes:
+      - ./xray_config.json:/etc/xray/config.json:ro
+    network_mode: host

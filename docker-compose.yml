@@ -1,0 +1,72 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443" # Раскомментируй, когда накинешь SSL-сертификаты
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    networks:
+      - n8n-net
+    depends_on:
+      - n8n
+
+  xray:
+    image: teddysun/xray:latest
+    container_name: xray
+    restart: unless-stopped
+    volumes:
+      - ./xray_config.json:/etc/xray/config.json
+    ports:
+      - "10808:10808"
+    networks:
+      - n8n-net
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: always
+    environment:
+      - N8N_HOST=smm.unidoka.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=0864211z!
+      - N8N_SECURE_COOKIE=false
+      - WEBHOOK_URL=https://smm.unidoka.com/
+      - GENERIC_TIMEZONE=Europe/Moscow
+      - TZ=Europe/Moscow
+
+      - N8N_TRUST_PROXY=true
+
+      # FIX 2: Stop internal telemetry proxy collisions (or use N8N_DIAGNOSTICS_ENABLED=false)
+      - N8N_TELEMETRY_ENABLED=false
+      - NODE_OPTIONS=--require global-agent/bootstrap
+      - GLOBAL_AGENT_HTTP_PROXY=http://xray:10808
+      - GLOBAL_AGENT_HTTPS_PROXY=http://xray:10808
+      - GLOBAL_AGENT_NO_PROXY=localhost,127.0.0.1,smm.unidoka.com,n8n,xray,nginx_proxy,nginx # SMTP settings for ProtonMail
+      - N8N_EMAIL_MODE=smtp
+      - N8N_SMTP_HOST=smtp.protonmail.ch
+      - N8N_SMTP_PORT=587
+      - N8N_SMTP_USER=smmn8n@proton.me
+      - N8N_SMTP_PASS=nX22S37d8CK-8MA
+      - N8N_SMTP_SENDER=smmn8n@proton.me
+      - N8N_SMTP_SSL=false
+      - N8N_SMTP_TLS=true
+      - N8N_SMTP_IGNORE_TLS=false
+      - N8N_SMTP_SECURE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - n8n-net
+
+networks:
+  n8n-net:
+    driver: bridge
+
+volumes:
+  n8n_data:
